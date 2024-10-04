@@ -89,10 +89,11 @@ program arrange
 
             total_num_points = total_num_points + num_points_om
             
-            if (ii.gt. 0) then  
+            !if there is more than one file, check each of the files are consistent with each other.
+            if (num_files.gt. 1) then  
                 call consistency_check(ii)
             end if 
-
+            !set variables
             NZED_PREV = NZED
             NELEC_PREV = NELEC
             NAST_PREV = NAST
