@@ -66,6 +66,8 @@ program arrange
     integer :: total_num_points
     integer,allocatable :: angular_momentum_dump(:)
     integer,allocatable :: bigL(:),multiplicity(:),indexpointer(:)
+    integer,allocatable :: shouldIWrite(:)
+    integer :: numPointsToBeWritten
     !---------------------------------
 
 
@@ -170,6 +172,12 @@ program arrange
     call cpu_time(t2)
     write(*,11) t2-t1
     write(*,9999)
+    call check_for_negatives_in_arranged_omega(&
+                              NZED,NELEC,NAST,omega_ALL,&
+                              energies_bound,energies_incident_all,&
+                              bigL,multiplicity,total_num_points,&
+                              num_tran,indexpointer,shouldIWrite)
+
     !Write out the new OMEGA file, using the sorted indexpointer.
     call write_arranged_omega(NZED,NELEC,NAST,omega_ALL,&
                               energies_bound,energies_incident_all,&
@@ -380,6 +388,47 @@ program arrange
 
     end subroutine
 
+    subroutine check_for_negatives_in_arranged_omega(&
+        NZED, &
+        NELEC,&
+        NAST ,&
+        OMEGA,&
+        energies_bound,&
+        energies_incident,&
+        bigL,&
+        mult,&
+        num_points,&
+        num_tran,&
+        index_pointer,&
+        shouldIWrite&
+        )
+        integer :: NZED,NELEC,NAST,num_points,num_tran
+        real*8 :: energies_bound(nast)
+        integer :: bigL(nast),mult(nast)
+        real*8 :: energies_incident(num_points),t1,t2
+        integer :: index_pointer(num_points)
+        real*8 :: omega(num_points,num_tran) 
+        integer :: ii,index
+        integer, allocatable :: shouldIWrite(:)
+
+        numPointsToBeWritten = 0
+        allocate(shouldIWrite(num_points))
+
+        do ii = 1, num_points
+            index = index_pointer(ii)
+            if ( any(omega(index,:) < 0.0d0) ) then
+                 shouldIWrite(ii) = 0
+                 print*,'   Removing ',energies_incident(ii)
+            else
+                shouldIWrite(ii) = 1 
+                numPointsToBeWritten = numPointsToBeWritten+1
+            end if 
+        end do 
+
+
+
+    end subroutine
+
     subroutine write_arranged_omega(&
         NZED, &
         NELEC,&
@@ -407,13 +456,16 @@ program arrange
         open(1,file='OMEGAZ')
 
         WRITE(1,*) NZED,NELEC
-        WRITE(1,*)NAST,num_points,num_tran
+        !!WRITE(1,*)NAST,num_points,num_tran
+        WRITE(1,*)NAST,numPointsToBeWritten,num_tran
         WRITE(1,*)(mult(ii),bigL(ii),ii=1,nast)
         WRITE(1,270)(energies_bound(ii),ii=1,nast)
 
         do ii =1,num_points
             index = index_pointer(ii)
-            write(1,380) energies_incident(ii),omega(index,:)
+            if (shouldIWrite(ii)==1) then
+                write(1,380) energies_incident(ii),omega(index,:)
+            end if
         end do 
 
         close(1)
