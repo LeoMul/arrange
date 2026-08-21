@@ -416,7 +416,7 @@ program arrange
 
         do ii = 1, num_points
             index = index_pointer(ii)
-            if ( any(omega(index,:) < 0.0d0) ) then
+            if ( any(omega(index,:) < 0.0d0) .and. energies_incident(ii).lt.9.99E5) then
                  shouldIWrite(ii) = 0
                  print*,'   Removing ',energies_incident(ii)
             else
